@@ -79,7 +79,7 @@ rule ${name}(${paramNames.join(', ')}) :- {
     };
     searchOp(ConstSet(paramNames), ConstSet.Empty, 0);
     return def(clause);
- 
+
     function searchOp(varNames, inNames, opIndex) {
       if (opIndex < ops.length) {
         const op = ops[opIndex];
@@ -95,21 +95,9 @@ rule ${name}(${paramNames.join(', ')}) :- {
           }
         }
       } else {
-        const inParams = [];
-        const outParams = [];
-        let clauseMode = '';
-        for (let paramName of paramNames) {
-          if (inNames.has(paramName)) {
-            inParams.push(paramName);
-            clauseMode += 'I';
-          } else {
-            outParams.push(paramName);
-            clauseMode += 'O';
-          }
-        }
-        if (clauseMode in clause) {
-          return;
-        }
+        const clauseMode =
+            paramNames.map(n => inNames.has(n) ? 'I' : 'O').join('');
+        const [inParams, outParams] = modeSplit(paramNames, clauseMode);
         let body = indent`
 yield [${outParams.join(',')}];`;
         for (let i = ops.length -1; i >= 0; i--) {
@@ -124,6 +112,11 @@ yield [${outParams.join(',')}];`;
     }
   });
 })`;
+        if (clauseMode in clause) {
+console.log(indent`
+worse ${clauseMode}: ${src}`);
+          return;
+        }
         clause[clauseMode] = src;
       }
     }
