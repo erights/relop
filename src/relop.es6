@@ -56,9 +56,14 @@ module.exports = (function(){
     return [inParams, outParams];
   }
 
-  function possibleMode(varNames, inArgs) {
+  function possibleMode(varNames, inArgs, defNames, outArgs) {
     for (let inArg of inArgs) {
       if (isIdent(inArg) && !varNames.has(inArg)) {
+        return false;
+      }
+    }
+    for (let outArg of outArgs) {
+      if (defNames.has(outArg)) {
         return false;
       }
     }
@@ -77,19 +82,20 @@ rule ${name}(${paramNames.join(', ')}) :- {
 }`;
       }
     };
-    searchOp(ConstSet(paramNames), ConstSet.Empty, 0);
+    searchOp(ConstSet(paramNames), ConstSet.Empty, ConstSet.Empty, 0);
     return def(clause);
 
-    function searchOp(varNames, inNames, opIndex) {
+    function searchOp(varNames, inNames, defNames, opIndex) {
       if (opIndex < ops.length) {
         const op = ops[opIndex];
         for (let opMode of modes(op)) {
           const [inArgs, outArgs] = modeSplit(op.argExprs, opMode);
-          if (possibleMode(varNames, inArgs)) {
+          if (possibleMode(varNames, inArgs, defNames, outArgs)) {
             opModes[opIndex] = opMode;
             const argNames = op.argExprs.filter(isIdent);
             searchOp(varNames.with(...argNames),
-                     inNames.with(...inArgs.filter(isIdent)),
+                     inNames.with(...inArgs.filter(isIdent).filter(n => !defNames.has(n))),
+                     defNames.with(...argNames),
                      opIndex + 1);
             opModes[opIndex] = void 0;
           }
@@ -113,8 +119,6 @@ yield [${outParams.join(',')}];`;
   });
 })`;
         if (clauseMode in clause) {
-console.log(indent`
-worse ${clauseMode}: ${src}`);
           return;
         }
         clause[clauseMode] = src;
