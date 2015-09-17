@@ -15,8 +15,8 @@ module.exports = (function(){
 
   const clause = compile(`F`, [`array`, `i`, `o`],
                          [Plus(`2`, `3`, `z`),
-                          Range(`0`, `z`, `i`),
-                          Index(`array`, `i`, `o`)]);
+                          Index(`array`, `i`, `o`),
+                          Range(`0`, `z`, `i`)]);
 
   console.log(''+clause);
 

@@ -121,7 +121,7 @@ yield [${outParams.join(',')}];`;
         if (clauseMode in clause) {
           return;
         }
-        clause[clauseMode] = src;
+        clause[clauseMode] = confine(src, {});
       }
     }
   }
@@ -170,7 +170,7 @@ for (let ${i} = ${start}; ${i} < ${bound}; ${i}++) {
 if (0 <= ${i} && ${i} < ${array}.length) {
   const ${v} = ${array}[${i}];
   ${inner}
-`;
+}`;
       },
       IOO(inner) {
         const len = newVar('len');
