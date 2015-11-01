@@ -93,8 +93,10 @@ rule ${name}(${paramNames.join(', ')}) :- {
           if (possibleMode(varNames, inArgs, defNames, outArgs)) {
             opModes[opIndex] = opMode;
             const argNames = op.argExprs.filter(isIdent);
+            const newInNames = 
+                inArgs.filter(isIdent).filter(n => !defNames.has(n));
             searchOp(varNames.with(...argNames),
-                     inNames.with(...inArgs.filter(isIdent).filter(n => !defNames.has(n))),
+                     inNames.with(...newInNames),
                      defNames.with(...argNames),
                      opIndex + 1);
             opModes[opIndex] = void 0;
@@ -121,7 +123,10 @@ yield [${outParams.join(',')}];`;
         if (clauseMode in clause) {
           return;
         }
-        clause[clauseMode] = confine(src, {});
+        const func = confine(src, {});
+        func.toString = () => src;
+        clause[clauseMode] = func;
+        
       }
     }
   }
