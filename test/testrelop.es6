@@ -1,11 +1,11 @@
-// Options: --free-variable-checker --require --validate
 /*global module require*/
 
 module.exports = (function(){
   "use strict";
 
-  const {def} = require('../src/sesshim.es6');
-  const {compile, modes, Plus, Range, Index, Equal} = require('../src/relop.es6');
+  const {def} = require('../src/sesshim.js');
+  const {compile, modes, Plus, Range, Index, Equal} =
+        require('../src/relop.js');
 
   console.log(
     Plus(`2`, `3`, `z`).IIO(

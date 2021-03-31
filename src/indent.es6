@@ -1,10 +1,9 @@
-// Options: --free-variable-checker --require --validate
 /*global module require*/
 
 module.exports = (function(){
   "use strict";
 
-  const {def} = require('./sesshim.es6');
+  const {def} = require('./sesshim.js');
   
   function indent(template, ...substs) {
     const result = [];

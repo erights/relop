@@ -1,4 +1,3 @@
-// Options: --free-variable-checker --require --validate
 /*global module require*/
 
 /**
@@ -7,12 +6,9 @@
 module.exports = (function(){
   "use strict";
 
-  require('babel');
-  require('babel/register');
-
-  var sesshim = require('./src/sesshim.es6');
+  var sesshim = require('./src/sesshim.js');
   var def = sesshim.def;
-  require('./test/testrelop.es6');
+  require('./test/testrelop.js');
 
   return def({});
 }());
