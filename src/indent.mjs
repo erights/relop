@@ -12,7 +12,7 @@ export const indent = (template, ...substs) => {
 
     let subst = `${substs[i]}`;
     const lastnl = segment.lastIndexOf('\n');
-    if (lastnl >= 0) {
+    if (true || lastnl >= 0) {
       newnewline = `\n${' '.repeat(segment.length - lastnl - 1)}`;
       subst = subst.replace(/\n/g, newnewline);
     }

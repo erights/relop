@@ -1,6 +1,9 @@
 // @ts-check
 
+// @ts-ignore
 import { compile, modes, Plus, Range, Index } from '../src/relop.mjs';
+// @ts-ignore
+import { indent } from '../src/indent.mjs';
 
 console.log(
   Plus(`2`, `3`, `z`).IIO(
@@ -16,5 +19,6 @@ const clause = compile(`F`, [`array`, `i`, `o`],
 console.log(''+clause);
 
 for (let clMode of modes(clause)) {
-  console.log(`${clMode}: ${clause[clMode]}`);
+  console.log(indent`
+  ${clMode}: ${clause[clMode]}`);
 }

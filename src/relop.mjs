@@ -1,6 +1,8 @@
 // @ts-check
 
-import { harden, confine } from './sesshim.mjs';
+// @ts-ignore
+import { harden } from './sesshim.mjs';
+// @ts-ignore
 import { indent } from './indent.mjs';
 
 let i = 1;
@@ -14,8 +16,10 @@ const CHECK = (flag, error) => {
 
 const ConstSet = iterable => {
   const set = new Set(iterable);
+  const label = `{{${[...set].join(',')}}}`;
   return harden({
-    toString: () => `ConstSet { ${[...set].join(', ')} }`,
+    label,
+    toString: () => label,
     has: m => set.has(m),
     get size() {
       return set.size;
@@ -66,13 +70,13 @@ const possibleMode = (varNames, inArgs, defNames, outArgs) => {
 export const compile = (name, paramNames, ops) => {
   const opModes = [];
   opModes.length = ops.length;
-  const clause = harden({
+  const clause = {
     toString: () => indent`
 rule ${name}(${paramNames.join(', ')}) :- {
   ${ops.join(`;
 `)};
 }`
-  });
+  };
   const searchOp = (varNames, inNames, defNames, opIndex) => {
     if (opIndex < ops.length) {
       const op = ops[opIndex];
@@ -100,18 +104,18 @@ yield [${outParams.join(',')}];`;
         body = ops[i][opModes[i]](body);
       }
       const src = indent`
-// ${opModes.join(', ')}
 (function ${name}_${clauseMode}(${inParams.join(', ')}) {
-return def({
-  *[Symbol.iterator]() {
-    ${body}
-  }
-});
+  // ${opModes.join(', ')}
+  return harden({
+    *[Symbol.iterator]() {
+      ${body}
+    }
+  });
 })`;
       if (clauseMode in clause) {
         return;
       }
-      const func = confine(src, {});
+      const func = (1,eval)(src);
       func.toString = () => src;
       clause[clauseMode] = func;
 
@@ -124,7 +128,7 @@ return def({
 export const Plus = (x, y, z) => {
   return harden({
     toString() { return `Plus(${x},${y},${z})`; },
-    argExprs: [...arguments],
+    argExprs: [x, y, z],
     IIO(inner) {
       return indent`
 const ${z} = ${x} + ${y};
@@ -146,17 +150,17 @@ ${inner}`;
 export const Range = (start, bound, i) => {
   return harden({
     toString() { return `Range(${start},${bound},${i})`; },
-    argExprs: [...arguments],
+    argExprs: [start, bound, i],
     III(inner) {
       return indent`
 if (${start} <= ${i} && ${i} < ${bound}) {
-${inner}
+  ${inner}
 }`;
     },
     IIO(inner) {
       return indent`
 for (let ${i} = ${start}; ${i} < ${bound}; ${i}++) {
-${inner}
+  ${inner}
 }`;
     }
   });
@@ -165,20 +169,20 @@ ${inner}
 export const Index = (array, i, v) => {
   return harden({
     toString() { return `Index(${array},${i},${v})`; },
-    argExprs: [...arguments],
+    argExprs: [array, i, v],
     IIO(inner) {
       return indent`
 if (0 <= ${i} && ${i} < ${array}.length) {
-const ${v} = ${array}[${i}];
-${inner}
+  const ${v} = ${array}[${i}];
+  ${inner}
 }`;
     },
     IOO(inner) {
       const len = newVar('len');
       return indent`
 for (let ${i} = 0, ${len} = ${array}.length; ${i} < ${len}; ${i}++) {
-const ${v} = ${array}[${i}];
-${inner}
+  const ${v} = ${array}[${i}];
+  ${inner}
 }`;
     }
   });
@@ -187,11 +191,11 @@ ${inner}
 export const Equal = (x, y) => {
   return harden({
     toString() { return `Equal(${x},${y})`; },
-    argExprs: [...arguments],
+    argExprs: [x, y],
     II(inner) {
       return indent`
 if (equal(${x}, ${y})) {
-${inner}
+  ${inner}
 }`;
     },
     IO(inner) {
