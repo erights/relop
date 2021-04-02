@@ -5,6 +5,8 @@ import { harden } from './sesshim.mjs';
 // @ts-ignore
 import { indent } from './indent.mjs';
 
+const { defineProperty } = Object;
+
 const { stringify: q } = JSON;
 
 let i = 1;
@@ -138,27 +140,34 @@ export const makeClauseFromOpMaker = (clauseName, paramNames, opMaker) => {
     paramNames,
     [opMaker(...paramNames)]
   );
-  return eval(clauseSrc);
+  console.log(clauseSrc);
+  return eval(indent`
+${clauseSrc}
+${clauseName};
+`);
 };
 
-export const makeOpFromClause = (clause, paramNames, modes) => {
-  const opMaker = (...args) => {
+export const makeOpMakerFromClause = (clause, opModes = modes(clause)) => {
+  const opMaker = (...argExprs) => {
     // don't freeze yet. More methods coming
     const op = {
-      toString: () => `${clause.name}(${args.join(',')})`,
-      argExpr: args,
+      toString: () => `${clause.name}(${argExprs.join(',')})`,
+      argExpr: argExprs,
     };
 
-    for (const mode of modes) {
-      op[mode] = inner => {
-        const [inArgs, outArgs] = modeSplit(paramNames, mode);
+    for (const opMode of opModes) {
+      op[opMode] = inner => {
+        const [inArgs, outArgs] = modeSplit(argExprs, opMode);
         const inArgsStr = inArgs.join(', ');
         const outArgsStr = outArgs.join(', ');
         return indent`
-for (const ${[outArgsStr]} of ${clause.name}.${mode}(${inArgsStr})) {
+for (const [${outArgsStr}] of ${clause.name}.${opMode}(${inArgsStr})) {
   ${inner}
 }`;
-      }
+      };
+      defineProperty(op[opMode], 'name', { value: opMode });
+      console.log('SRC', `${op[opMode]}`);
+      console.log('STT', op[opMode]('---'));
     }
     return harden(op);
   };

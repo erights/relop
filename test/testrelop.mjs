@@ -1,7 +1,10 @@
 // @ts-check
 
+import {
+  compileClause, Plus, Range, Index,
+  makeClauseFromOpMaker, makeOpMakerFromClause
 // @ts-ignore
-import { compileClause, Plus, Range, Index } from '../src/relop.mjs';
+} from '../src/relop.mjs';
 
 console.log(
   Plus(`x`, `y`, `z`).IIO(`yield [z];`), '\n');
@@ -24,3 +27,20 @@ const clauseSrc2 = compileClause(`F`, [`array`, `i`, `o`],
   Range(`0`, `z`, `i`)]);
 
 console.log(clauseSrc2);
+
+console.log('-------');
+
+const clause3 = makeClauseFromOpMaker(`P`, [`x`, `y`, `z`], Plus);
+
+console.log(clause3);
+
+const makeOp3 = makeOpMakerFromClause(clause3);
+
+console.log(makeOp3);
+console.log(`${makeOp3}`);
+
+console.log('-------');
+
+const op3 = makeOp3(`7`, `y`, `z`);
+
+console.log(op3);
