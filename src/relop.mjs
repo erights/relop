@@ -16,9 +16,9 @@ const CHECK = (flag, error) => {
 
 const ConstSet = iterable => {
   const set = new Set(iterable);
-  const label = `{{${[...set].join(',')}}}`;
+  const label = `{{${[...set].join(', ')}}}`;
   return harden({
-    label,
+    label, // so it is visible in the debugger
     toString: () => label,
     has: m => set.has(m),
     get size() {
@@ -70,13 +70,8 @@ const possibleMode = (varNames, inArgs, defNames, outArgs) => {
 export const compile = (name, paramNames, ops) => {
   const opModes = [];
   opModes.length = ops.length;
-  const clause = {
-    toString: () => indent`
-rule ${name}(${paramNames.join(', ')}) :- {
-  ${ops.join(`;
-`)};
-}`
-  };
+  const modeMethodSrcs = [];
+  const ruleHeadSrc = `${name}(${paramNames.join(',')})`;
   const searchOp = (varNames, inNames, defNames, opIndex) => {
     if (opIndex < ops.length) {
       const op = ops[opIndex];
@@ -99,30 +94,38 @@ rule ${name}(${paramNames.join(', ')}) :- {
         paramNames.map(n => inNames.has(n) ? 'I' : 'O').join('');
       const [inParams, outParams] = modeSplit(paramNames, clauseMode);
       let body = indent`
-yield [${outParams.join(',')}];`;
+yield [${outParams.join(', ')}];`;
       for (let i = ops.length - 1; i >= 0; i--) {
         body = ops[i][opModes[i]](body);
       }
-      const src = indent`
-(function ${name}_${clauseMode}(${inParams.join(', ')}) {
-  // ${opModes.join(', ')}
-  return harden({
-    *[Symbol.iterator]() {
-      ${body}
-    }
-  });
-})`;
-      if (clauseMode in clause) {
-        return;
-      }
-      const func = (1,eval)(src);
-      func.toString = () => src;
-      clause[clauseMode] = func;
+      const planSrc = `${clauseMode} :- ${opModes.join(', ')}`;
+      const planHeadSrc = `${name}(${paramNames.join(',')})@${clauseMode}`;
+      const modeMethodSrc = indent`
+${clauseMode}: (${inParams.join(', ')}) => harden({
+  toString: () => ${JSON.stringify(planHeadSrc)},
+  toPlan: () => ${JSON.stringify(planSrc)},
 
+  *[Symbol.iterator]() {
+    ${body}
+  }
+})`;
+      modeMethodSrcs.push(modeMethodSrc);
     }
   };
   searchOp(ConstSet(paramNames), ConstSet.Empty, ConstSet.Empty, 0);
-  return harden(clause);
+
+  const ruleSrc = indent`
+${ruleHeadSrc} :- ${ops.join(`, `)};`;
+
+  const clauseSrc = indent`
+const ${name} = harden({
+  toString: () => ${JSON.stringify(ruleHeadSrc)},
+  toRule: () => ${JSON.stringify(ruleSrc)},
+
+  ${modeMethodSrcs.join(`,
+`)}
+});`;
+  return clauseSrc;
 };
 
 export const Plus = (x, y, z) => {

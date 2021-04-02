@@ -1,24 +1,26 @@
 // @ts-check
 
 // @ts-ignore
-import { compile, modes, Plus, Range, Index } from '../src/relop.mjs';
-// @ts-ignore
-import { indent } from '../src/indent.mjs';
+import { compile, Plus, Range, Index } from '../src/relop.mjs';
+
+console.log(
+  Plus(`x`, `y`, `z`).IIO(`yield [z];`), '\n');
+
+const clauseSrc1 = compile(`P`, [`x`, `y`, `z`], [Plus(`x`, `y`, `z`)]);
+
+console.log(clauseSrc1);
+
+console.log('-------');
 
 console.log(
   Plus(`2`, `3`, `z`).IIO(
     Range(`0`, `z`, `i`).IIO(
       Index(`array`, `i`, `o`).IIO(
-        `yield [i,o];`))));
+        `yield [i,o];`))), '\n');
 
-const clause = compile(`F`, [`array`, `i`, `o`],
-                        [Plus(`2`, `3`, `z`),
-                        Index(`array`, `i`, `o`),
-                        Range(`0`, `z`, `i`)]);
+const clauseSrc2 = compile(`F`, [`array`, `i`, `o`],
+  [Plus(`2`, `3`, `z`),
+  Index(`array`, `i`, `o`),
+  Range(`0`, `z`, `i`)]);
 
-console.log(''+clause);
-
-for (let clMode of modes(clause)) {
-  console.log(indent`
-  ${clMode}: ${clause[clMode]}`);
-}
+console.log(clauseSrc2);
