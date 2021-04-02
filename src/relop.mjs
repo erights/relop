@@ -147,21 +147,24 @@ ${clauseName};
 `);
 };
 
-export const makeOpMakerFromClause = (clause, opModes = modes(clause)) => {
+export const makeOpMakerFromClauseName = (clauseName, opModes) => {
   const opMaker = (...argExprs) => {
     // don't freeze yet. More methods coming
     const op = {
-      toString: () => `${clause.name}(${argExprs.join(',')})`,
+      toString: () => `${clauseName}(${argExprs.join(',')})`,
       argExpr: argExprs,
     };
 
     for (const opMode of opModes) {
       const [inArgs, outArgs] = modeSplit(argExprs, opMode);
+      if (outArgs.some(arg => !isIdent(arg))) {
+        continue;
+      }
       const inArgsStr = inArgs.join(', ');
       const outArgsStr = outArgs.join(', ');
       op[opMode] = inner => {
         return indent`
-for (const [${outArgsStr}] of ${clause.name}.${opMode}(${inArgsStr})) {
+for (const [${outArgsStr}] of ${clauseName}.${opMode}(${inArgsStr})) {
   ${inner}
 }`;
       };
@@ -173,6 +176,9 @@ for (const [${outArgsStr}] of ${clause.name}.${opMode}(${inArgsStr})) {
   };
   return opMaker;
 };
+
+export const makeOpMakerFromClause = clause =>
+  makeOpMakerFromClauseName(clause.name, modes(clause));
 
 export const Plus = (x, y, z) => {
   return harden({
