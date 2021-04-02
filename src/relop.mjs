@@ -156,10 +156,10 @@ export const makeOpMakerFromClause = (clause, opModes = modes(clause)) => {
     };
 
     for (const opMode of opModes) {
+      const [inArgs, outArgs] = modeSplit(argExprs, opMode);
+      const inArgsStr = inArgs.join(', ');
+      const outArgsStr = outArgs.join(', ');
       op[opMode] = inner => {
-        const [inArgs, outArgs] = modeSplit(argExprs, opMode);
-        const inArgsStr = inArgs.join(', ');
-        const outArgsStr = outArgs.join(', ');
         return indent`
 for (const [${outArgsStr}] of ${clause.name}.${opMode}(${inArgsStr})) {
   ${inner}
