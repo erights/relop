@@ -1,12 +1,12 @@
 // @ts-check
 
 // @ts-ignore
-import { compile, Plus, Range, Index } from '../src/relop.mjs';
+import { compileClause, Plus, Range, Index } from '../src/relop.mjs';
 
 console.log(
   Plus(`x`, `y`, `z`).IIO(`yield [z];`), '\n');
 
-const clauseSrc1 = compile(`P`, [`x`, `y`, `z`], [Plus(`x`, `y`, `z`)]);
+const clauseSrc1 = compileClause(`P`, [`x`, `y`, `z`], [Plus(`x`, `y`, `z`)]);
 
 console.log(clauseSrc1);
 
@@ -18,7 +18,7 @@ console.log(
       Index(`array`, `i`, `o`).IIO(
         `yield [i,o];`))), '\n');
 
-const clauseSrc2 = compile(`F`, [`array`, `i`, `o`],
+const clauseSrc2 = compileClause(`F`, [`array`, `i`, `o`],
   [Plus(`2`, `3`, `z`),
   Index(`array`, `i`, `o`),
   Range(`0`, `z`, `i`)]);

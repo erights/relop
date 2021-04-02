@@ -5,6 +5,8 @@ import { harden } from './sesshim.mjs';
 // @ts-ignore
 import { indent } from './indent.mjs';
 
+const { stringify: q } = JSON;
+
 let i = 1;
 const newVar = prefix => `${prefix}_${i++}`;
 
@@ -67,11 +69,11 @@ const possibleMode = (varNames, inArgs, defNames, outArgs) => {
   return true;
 };
 
-export const compile = (name, paramNames, ops) => {
+export const compileClause = (clauseName, paramNames, ops) => {
   const opModes = [];
   opModes.length = ops.length;
   const modeMethodSrcs = [];
-  const ruleHeadSrc = `${name}(${paramNames.join(',')})`;
+  const ruleHeadSrc = `${clauseName}(${paramNames.join(',')})`;
   const searchOp = (varNames, inNames, defNames, opIndex) => {
     if (opIndex < ops.length) {
       const op = ops[opIndex];
@@ -99,11 +101,12 @@ yield [${outParams.join(', ')}];`;
         body = ops[i][opModes[i]](body);
       }
       const planSrc = `${clauseMode} :- ${opModes.join(', ')}`;
-      const planHeadSrc = `${name}(${paramNames.join(',')})@${clauseMode}`;
+      const planHeadSrc = `${clauseName}(${paramNames.join(',')})@${clauseMode}`;
       const modeMethodSrc = indent`
 ${clauseMode}: (${inParams.join(', ')}) => harden({
-  toString: () => ${JSON.stringify(planHeadSrc)},
-  toPlan: () => ${JSON.stringify(planSrc)},
+  toString: () => ${q(planHeadSrc)},
+  mode: ${q(clauseMode)},
+  plan: ${q(planSrc)},
 
   *[Symbol.iterator]() {
     ${body}
@@ -118,9 +121,10 @@ ${clauseMode}: (${inParams.join(', ')}) => harden({
 ${ruleHeadSrc} :- ${ops.join(`, `)};`;
 
   const clauseSrc = indent`
-const ${name} = harden({
-  toString: () => ${JSON.stringify(ruleHeadSrc)},
-  toRule: () => ${JSON.stringify(ruleSrc)},
+const ${clauseName} = harden({
+  toString: () => ${q(ruleHeadSrc)},
+  name: ${q(clauseName)},
+  rule: ${q(ruleSrc)},
 
   ${modeMethodSrcs.join(`,
 `)}
@@ -128,59 +132,73 @@ const ${name} = harden({
   return clauseSrc;
 };
 
+export const makeClauseFromOpMaker = (clauseName, paramNames, opMaker) => {
+  const clauseSrc = compileClause(
+    clauseName,
+    paramNames,
+    [opMaker(...paramNames)]
+  );
+  return eval(clauseSrc);
+};
+
+export const makeOpFromClause = (clause, paramNames, modes) => {
+  const opMaker = (...args) => {
+    // don't freeze yet. More methods coming
+    const op = {
+      toString: ''
+    };
+  };
+  return opMaker;
+};
+
 export const Plus = (x, y, z) => {
   return harden({
-    toString() { return `Plus(${x},${y},${z})`; },
+    toString: () => `Plus(${x},${y},${z})`,
     argExprs: [x, y, z],
-    IIO(inner) {
-      return indent`
+
+    IIO: inner => indent`
 const ${z} = ${x} + ${y};
-${inner}`;
-    },
-    IOI(inner) {
-      return indent`
+${inner}`,
+
+    IOI: inner => indent`
 const ${y} = ${z} - ${x};
-${inner}`;
-    },
-    OII(inner) {
-      return indent`
+${inner}`,
+
+    OII: inner => indent`
 const ${x} = ${z} - ${y};
-${inner}`;
-    }
+${inner}`
   });
 };
 
 export const Range = (start, bound, i) => {
   return harden({
-    toString() { return `Range(${start},${bound},${i})`; },
+    toString: () => `Range(${start},${bound},${i})`,
     argExprs: [start, bound, i],
-    III(inner) {
-      return indent`
+
+    III: inner => indent`
 if (${start} <= ${i} && ${i} < ${bound}) {
   ${inner}
-}`;
-    },
-    IIO(inner) {
-      return indent`
+}`,
+
+    IIO: inner => indent`
 for (let ${i} = ${start}; ${i} < ${bound}; ${i}++) {
   ${inner}
-}`;
-    }
+}`
   });
 };
 
 export const Index = (array, i, v) => {
   return harden({
-    toString() { return `Index(${array},${i},${v})`; },
+    toString: () => `Index(${array},${i},${v})`,
     argExprs: [array, i, v],
-    IIO(inner) {
-      return indent`
+
+    IIO: inner => indent`
 if (0 <= ${i} && ${i} < ${array}.length) {
   const ${v} = ${array}[${i}];
   ${inner}
-}`;
-    },
-    IOO(inner) {
+}`,
+
+    IOO: inner => {
       const len = newVar('len');
       return indent`
 for (let ${i} = 0, ${len} = ${array}.length; ${i} < ${len}; ${i}++) {
@@ -193,23 +211,20 @@ for (let ${i} = 0, ${len} = ${array}.length; ${i} < ${len}; ${i}++) {
 
 export const Equal = (x, y) => {
   return harden({
-    toString() { return `Equal(${x},${y})`; },
+    toString: () => `Equal(${x},${y})`,
     argExprs: [x, y],
-    II(inner) {
-      return indent`
+
+    II: inner => indent`
 if (equal(${x}, ${y})) {
   ${inner}
-}`;
-    },
-    IO(inner) {
-      return indent`
+}`,
+
+    IO: inner => indent`
 const ${y} = ${x};
-${inner}`;
-    },
-    OI(inner) {
-      return indent`
+${inner}`,
+
+    OI: inner => indent`
 const ${x} = ${y};
-${inner}`;
-    }
+${inner}`
   });
 };
