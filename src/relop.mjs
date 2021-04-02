@@ -145,8 +145,22 @@ export const makeOpFromClause = (clause, paramNames, modes) => {
   const opMaker = (...args) => {
     // don't freeze yet. More methods coming
     const op = {
-      toString: ''
+      toString: () => `${clause.name}(${args.join(',')})`,
+      argExpr: args,
     };
+
+    for (const mode of modes) {
+      op[mode] = inner => {
+        const [inArgs, outArgs] = modeSplit(paramNames, mode);
+        const inArgsStr = inArgs.join(', ');
+        const outArgsStr = outArgs.join(', ');
+        return indent`
+for (const ${[outArgsStr]} of ${clause.name}.${mode}(${inArgsStr})) {
+  ${inner}
+}`;
+      }
+    }
+    return harden(op);
   };
   return opMaker;
 };
